@@ -1,140 +1,216 @@
 import streamlit as st
-import random
+import streamlit.components.v1 as components
 
-st.set_page_config(
-    page_title="🏀 Basket Français",
-    page_icon="🏀",
-    layout="wide"
-)
+st.set_page_config(page_title="🏀 NBA Arcade Ultimate", layout="wide")
 
-# ---------- CSS ----------
-st.markdown("""
+components.html("""
+<!DOCTYPE html>
+<html>
+<head>
 <style>
 
-.stApp{
-    background: linear-gradient(135deg,#0055A4,#FFFFFF,#EF4135);
+body{
+    margin:0;
+    overflow:hidden;
+    font-family:Arial;
+    background:linear-gradient(135deg,#000,#ff6600);
 }
 
-.title{
-    text-align:center;
-    font-size:60px;
-    font-weight:bold;
-    color:#0055A4;
-    text-shadow:2px 2px 8px white;
-}
-
-.subtitle{
-    text-align:center;
-    font-size:22px;
-    color:#222;
-}
-
-.card{
-    background:white;
-    padding:20px;
-    border-radius:20px;
-    box-shadow:0px 5px 20px rgba(0,0,0,0.2);
-    text-align:center;
-}
-
-.score{
-    background:linear-gradient(135deg,#0055A4,#EF4135);
+/* SCOREBOARD */
+#ui{
     color:white;
-    padding:20px;
-    border-radius:20px;
     text-align:center;
-    font-size:30px;
+    font-size:24px;
+    padding:10px;
     font-weight:bold;
+}
+
+/* COURT */
+#court{
+    position:relative;
+    width:100%;
+    height:600px;
+    background:linear-gradient(to top,#8B5A2B,#DEB887);
+    border-top:5px solid white;
+}
+
+/* PLAYER */
+#player{
+    position:absolute;
+    bottom:40px;
+    left:50%;
+    font-size:65px;
+    transition:0.08s;
+}
+
+/* HOOP */
+#hoop{
+    position:absolute;
+    top:80px;
+    left:20%;
+    font-size:75px;
+    animation:moveHoop 2.8s infinite alternate;
+}
+
+/* DEFENDER */
+#defender{
+    position:absolute;
+    bottom:40px;
+    left:30%;
+    font-size:65px;
+    animation:defenderMove 2s infinite alternate;
+}
+
+/* BALL */
+#ball{
+    position:absolute;
+    font-size:35px;
+    display:none;
+}
+
+/* POWER SHOT EFFECT */
+.fire{
+    filter: drop-shadow(0 0 10px orange);
+    transform: scale(1.2);
+}
+
+@keyframes moveHoop{
+    from{left:10%;}
+    to{left:80%;}
+}
+
+@keyframes defenderMove{
+    from{left:20%;}
+    to{left:70%;}
 }
 
 </style>
-""", unsafe_allow_html=True)
+</head>
 
-# ---------- Title ----------
-st.markdown("""
-<div class="title">🏀 Basket Français 🏀</div>
-<div class="subtitle">Essayez de marquer le plus de paniers possible !</div>
-""", unsafe_allow_html=True)
+<body>
 
-# ---------- Session State ----------
-if "score" not in st.session_state:
-    st.session_state.score = 0
-
-if "attempts" not in st.session_state:
-    st.session_state.attempts = 0
-
-# ---------- Scoreboard ----------
-st.markdown(
-f"""
-<div class="score">
-🏆 Score: {st.session_state.score}<br>
-🎯 Tentatives: {st.session_state.attempts}
+<div id="ui">
+🏀 Score: <span id="score">0</span> |
+🪙 Coins: <span id="coins">0</span> |
+⏱️ Time: <span id="time">60</span>
 </div>
-""",
-unsafe_allow_html=True
-)
 
-st.write("")
+<div id="court">
 
-# ---------- Difficulty ----------
-difficulty = st.selectbox(
-    "Choisissez la difficulté",
-    ["Facile", "Moyen", "Difficile"]
-)
+<div id="hoop">🗑️</div>
+<div id="player">⛹️</div>
+<div id="defender">🧍</div>
+<div id="ball">🏀</div>
 
-if difficulty == "Facile":
-    chance = 80
-elif difficulty == "Moyen":
-    chance = 60
-else:
-    chance = 40
-
-# ---------- Court ----------
-st.markdown("""
-<div class="card">
-<h2>🏀 Terrain de Basket</h2>
-<p>Cliquez sur le bouton pour tirer !</p>
 </div>
-""", unsafe_allow_html=True)
 
-# ---------- Shoot ----------
-if st.button("🏀 Tirer le ballon !"):
+<script>
 
-    st.session_state.attempts += 1
+let score=0;
+let coins=0;
+let time=60;
 
-    shot = random.randint(1,100)
+let streak=0;
+let fireMode=false;
 
-    if shot <= chance:
-        st.session_state.score += 2
-        st.success("🎉 PANIER ! +2 points")
-        st.balloons()
-    else:
-        st.error("❌ Raté !")
+let playerX=50;
 
-# ---------- Stats ----------
-if st.session_state.attempts > 0:
+const player=document.getElementById("player");
+const hoop=document.getElementById("hoop");
+const ball=document.getElementById("ball");
+const defender=document.getElementById("defender");
 
-    percentage = (
-        st.session_state.score /
-        (st.session_state.attempts * 2)
-    ) * 100
+document.addEventListener("keydown",function(e){
 
-    col1, col2 = st.columns(2)
+// MOVE LEFT
+if(e.key==="ArrowLeft"){
+playerX-=3;
+if(playerX<0) playerX=0;
+player.style.left=playerX+"%";
+}
 
-    with col1:
-        st.metric("🏆 Score", st.session_state.score)
+// MOVE RIGHT
+if(e.key==="ArrowRight"){
+playerX+=3;
+if(playerX>95) playerX=95;
+player.style.left=playerX+"%";
+}
 
-    with col2:
-        st.metric("📈 Réussite", f"{percentage:.1f}%")
+// SHOOT
+if(e.code==="Space"){
 
-# ---------- Reset ----------
-if st.button("🔄 Nouvelle Partie"):
-    st.session_state.score = 0
-    st.session_state.attempts = 0
-    st.rerun()
+ball.style.display="block";
+ball.style.left=player.style.left;
 
-st.markdown("---")
-st.markdown(
-"<center><h3>🇫🇷 Vive le Basket Français ! 🏀</h3></center>",
-unsafe_allow_html=True
-)
+let height=80;
+
+let shoot=setInterval(()=>{
+
+height+=14;
+ball.style.bottom=height+"px";
+
+// FINISH SHOT
+if(height>430){
+clearInterval(shoot);
+
+let hoopX=hoop.offsetLeft;
+let playerPos=player.offsetLeft;
+
+// HIT DETECTION
+if(Math.abs(hoopX-playerPos)<120){
+
+streak++;
+score+=2;
+coins+=5;
+
+// FIRE MODE
+if(streak>=3){
+fireMode=true;
+score+=3;
+document.getElementById("ball").classList.add("fire");
+}
+
+if(streak>=5){
+score+=5;
+coins+=10;
+}
+
+document.getElementById("score").innerHTML=score;
+document.getElementById("coins").innerHTML=coins;
+
+}
+
+else{
+streak=0;
+fireMode=false;
+document.getElementById("ball").classList.remove("fire");
+}
+
+ball.style.display="none";
+height=80;
+
+}
+
+},15);
+
+}
+
+});
+
+// TIMER
+setInterval(()=>{
+time--;
+document.getElementById("time").innerHTML=time;
+
+if(time<=0){
+alert("GAME OVER! Final Score: " + score);
+location.reload();
+}
+
+},1000);
+
+</script>
+
+</body>
+</html>
+""", height=750)
